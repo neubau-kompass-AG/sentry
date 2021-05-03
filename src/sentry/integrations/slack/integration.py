@@ -118,7 +118,7 @@ class SlackIntegrationProvider(IntegrationProvider):
     def get_identity(self, user_token):
         session = http.build_session()
 
-        headers = {"Authorization": "Bearer %s" % access_token}
+        headers = {"Authorization": "Bearer %s" % user_token}
 
         resp = session.get('https://slack.com/api/auth.test', headers=headers)
         resp.raise_for_status()

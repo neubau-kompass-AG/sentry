@@ -1,3 +1,9 @@
+Why the fork?
+-------------
+* Slack integration not working, due to the following changes on slack:
+  * https://api.slack.com/changelog/2020-11-no-more-tokens-in-querystrings-for-newly-created-apps
+  * https://api.slack.com/methods/groups.list
+
 What's Sentry?
 --------------
 
