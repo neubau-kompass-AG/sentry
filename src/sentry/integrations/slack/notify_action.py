@@ -15,6 +15,7 @@ CHANNEL_PREFIX = '#'
 strip_channel_chars = ''.join([MEMBER_PREFIX, CHANNEL_PREFIX])
 
 
+
 class SlackNotifyServiceForm(forms.Form):
     workspace = forms.ChoiceField(choices=(), widget=forms.Select(
     ))
@@ -41,21 +42,29 @@ class SlackNotifyServiceForm(forms.Form):
         workspace = cleaned_data.get('workspace')
         channel = cleaned_data.get('channel', '').lstrip(strip_channel_chars)
 
-        channel_id = self.channel_transformer(workspace, channel)
+        channel_prefix, channel_id, timed_out = self.channel_transformer(workspace, channel)
+
+        channel = channel.lstrip(strip_channel_chars);
+
+        if channel_id is None and timed_out:
+            cleaned_data['channel'] = channel_prefix + channel
+            cleaned_data['channel_id'] = channel_id
+            return cleaned_data
 
         if channel_id is None and workspace is not None:
             params = {
-                'channel': channel,
-                'workspace': dict(self.fields['workspace'].choices).get(int(workspace)),
+                "channel": channel,
+                "workspace": dict(self.fields["workspace"].choices).get(int(workspace)),
             }
 
             raise forms.ValidationError(
-                _('The slack resource "%(channel)s" does not exist or has not been granted access in the %(workspace)s Slack workspace.'),
-                code='invalid',
+                _(
+                    'The slack resource "%(channel)s" does not exist or has not been granted access in the %(workspace)s Slack workspace.'
+                ),
+                code="invalid",
                 params=params,
             )
 
-        channel_prefix, channel_id = channel_id
         cleaned_data['channel'] = channel_prefix + channel
         cleaned_data['channel_id'] = channel_id
 
@@ -172,49 +181,66 @@ class SlackNotifyServiceAction(EventAction):
 
         session = http.build_session()
 
-        token_payload = {
-            'token': integration.metadata['access_token'],
-        }
+        headers = {"Authorization": "Bearer %s" % integration.metadata['access_token']}
 
         # Look for channel ID
-        channels_payload = dict(token_payload, **{
-            'exclude_archived': False,
-            'exclude_members': True,
-        })
+        payload = {
+            "exclude_archived": False,
+            "exclude_members": True,
+            "types": "public_channel,private_channel",
+        }
 
-        resp = session.get('https://slack.com/api/channels.list', params=channels_payload)
-        resp = resp.json()
-        if not resp.get('ok'):
-            self.logger.info('rule.slack.channel_list_failed', extra={'error': resp.get('error')})
-            return None
+        # Different list types in slack that we'll use to resolve a channel name. Format is
+        # (<list_name>, <result_name>, <prefix>).
+        list_types = [
+            ("conversations", "channels", CHANNEL_PREFIX),
+            ("users", "members", MEMBER_PREFIX),
+        ]
 
-        channel_id = {c['name']: c['id'] for c in resp['channels']}.get(name)
+        id_data = None
+        found_duplicate = False
+        prefix = ""
 
-        if channel_id:
-            return (CHANNEL_PREFIX, channel_id)
+        for list_type, result_name, prefix in list_types:
+            cursor = ""
+            while True:
+                endpoint = "https://slack.com/api/%s.list" % list_type
+                # Slack limits the response of `<list_type>.list` to 1000 channels
+                resp = session.get(
+                    endpoint, headers=headers, params=dict(payload, cursor=cursor, limit=1000)
+                )
+                resp = resp.json()
 
-        # Channel may be private
-        resp = session.get('https://slack.com/api/groups.list', params=channels_payload)
-        resp = resp.json()
-        if not resp.get('ok'):
-            self.logger.info('rule.slack.group_list_failed', extra={'error': resp.get('error')})
-            return None
+                if not resp.get('ok'):
+                    self.logger.info('rule.slack.%s_list_failed' % list_type, extra={'error': resp.get('error')})
+                    return (prefix, None, False)
 
-        group_id = {c['name']: c['id'] for c in resp['groups']}.get(name)
 
-        if group_id:
-            return (CHANNEL_PREFIX, group_id)
+                for c in resp[result_name]:
+                    # The "name" field is unique (this is the username for users)
+                    # so we return immediately if we find a match.
+                    # convert to lower case since all names in Slack are lowercase
+                    if c["name"].lower() == name.lower():
+                        return (prefix, c["id"], False)
+                    # If we don't get a match on a unique identifier, we look through
+                    # the users' display names, and error if there is a repeat.
+                    if list_type == "users":
+                        profile = c.get("profile")
+                        if profile and profile.get("display_name") == name:
+                            if id_data:
+                                found_duplicate = True
+                            else:
+                                id_data = (prefix, c["id"], False)
 
-        # Channel may actually be a user
-        resp = session.get('https://slack.com/api/users.list', params=token_payload)
-        resp = resp.json()
-        if not resp.get('ok'):
-            self.logger.info('rule.slack.user_list_failed', extra={'error': resp.get('error')})
-            return None
+                cursor = resp.get("response_metadata", {}).get("next_cursor", None)
+                if time.time() > time_to_quit:
+                    return (prefix, None, True)
 
-        member_id = {c['name']: c['id'] for c in resp['members']}.get(name)
+                if not cursor:
+                    break
+            if found_duplicate:
+                raise DuplicateDisplayNameError(name)
+            elif id_data:
+                return id_data
 
-        if member_id:
-            return (MEMBER_PREFIX, member_id)
-
-        return None
+        return (prefix, None, False)
