@@ -78,7 +78,7 @@ class AlertRuleDetails extends Component<Props, State> {
 
   getTimePeriod(): TimePeriodType {
     const {location} = this.props;
-    const period = location.query.period ?? TimePeriod.SEVEN_DAYS;
+    const period = location.query.period ?? TimePeriod.FOURTEEN_DAYS;
 
     if (location.query.start && location.query.end) {
       return {
