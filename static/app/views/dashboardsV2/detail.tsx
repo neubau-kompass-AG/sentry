@@ -17,6 +17,8 @@ import {
 } from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import DatePageFilter from 'sentry/components/datePageFilter';
+import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {
@@ -24,7 +26,9 @@ import {
   WidgetViewerQueryField,
 } from 'sentry/components/modals/widgetViewerModal/utils';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
+import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {PageContent} from 'sentry/styles/organization';
@@ -535,9 +539,12 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
       <PageFiltersContainer
         skipLoadLastUsed={organization.features.includes('global-views')}
+        hideGlobalHeader={hasPageFilters}
         defaultSelection={{
           datetime: {
             start: null,
@@ -569,6 +576,13 @@ class DashboardDetail extends Component<Props, State> {
                 widgetLimitReached={widgetLimitReached}
               />
             </StyledPageHeader>
+            {hasPageFilters && (
+                <DashboardPageFilterBar>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter alignDropdown="right" />
+                  <DatePageFilter alignDropdown="right" />
+                </DashboardPageFilterBar>
+            )}
             <HookHeader organization={organization} />
             <Dashboard
               paramDashboardId={dashboardId}
@@ -615,10 +629,13 @@ class DashboardDetail extends Component<Props, State> {
     const {modifiedDashboard, dashboardState, widgetLimitReached} = this.state;
     const {dashboardId} = params;
 
+    const hasPageFilters = organization.features.includes('selection-filters-v2');
+
     return (
       <SentryDocumentTitle title={dashboard.title} orgSlug={organization.slug}>
         <PageFiltersContainer
           skipLoadLastUsed={organization.features.includes('global-views')}
+          hideGlobalHeader={hasPageFilters}
           defaultSelection={{
             datetime: {
               start: null,
@@ -667,6 +684,13 @@ class DashboardDetail extends Component<Props, State> {
               </Layout.Header>
               <Layout.Body>
                 <Layout.Main fullWidth>
+                  {hasPageFilters && (
+                      <DashboardPageFilterBar>
+                        <ProjectPageFilter />
+                        <EnvironmentPageFilter alignDropdown="right" />
+                        <DatePageFilter alignDropdown="right" />
+                      </DashboardPageFilterBar>
+                  )}
                   <Dashboard
                     paramDashboardId={dashboardId}
                     dashboard={modifiedDashboard ?? dashboard}
@@ -726,6 +750,11 @@ const StyledTitle = styled(Layout.Title)`
 
 const StyledPageContent = styled(PageContent)`
   padding: 0;
+`;
+
+const DashboardPageFilterBar = styled(PageFilterBar)`
+  margin-bottom: ${space(2)};
+  width: max-content;
 `;
 
 export default withApi(withOrganization(DashboardDetail));
