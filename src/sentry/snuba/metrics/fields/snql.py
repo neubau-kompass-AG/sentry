@@ -116,3 +116,11 @@ def subtraction(arg1_snql, arg2_snql, alias=None):
 
 def addition(arg1_snql, arg2_snql, alias=None):
     return Function("plus", [arg1_snql, arg2_snql], alias)
+
+
+def session_duration_filters():
+    return [
+        Function(
+            "equals", (Column(f"tags[{resolve_weak('session.status')}]"), resolve_weak("exited"))
+        )
+    ]
