@@ -9,6 +9,8 @@ import Alert from 'sentry/components/alert';
 import {getInterval} from 'sentry/components/charts/utils';
 import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
+import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
+import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {IconInfo} from 'sentry/icons';
@@ -18,17 +20,18 @@ import {Organization, Project} from 'sentry/types';
 import {Dataset, IncidentRule} from 'sentry/views/alerts/incidentRules/types';
 import {extractEventTypeFilterFromRule} from 'sentry/views/alerts/incidentRules/utils/getEventTypeFilter';
 import MetricHistory from 'sentry/views/alerts/rules/details/metricHistory';
-import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
-import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 
 import {AlertRuleStatus, Incident} from '../../types';
 
-import {API_INTERVAL_POINTS_LIMIT, TimePeriodType, SELECTOR_RELATIVE_PERIODS} from './constants';
+import {
+  API_INTERVAL_POINTS_LIMIT,
+  SELECTOR_RELATIVE_PERIODS,
+  TimePeriodType,
+} from './constants';
 import MetricChart from './metricChart';
 import RelatedIssues from './relatedIssues';
 import RelatedTransactions from './relatedTransactions';
 import Sidebar from './sidebar';
-
 
 type Props = {
   api: Client;
@@ -108,15 +111,15 @@ export default class DetailsBody extends React.Component<Props> {
           start: moment(start).utc().format(),
           end: moment(end).utc().format(),
         },
-      })
+      });
     }
 
     return this.props.router.push({
       ...this.props.location,
       query: {
-        period: relative
+        period: relative,
       },
-    })
+    });
   };
 
   renderLoading() {
