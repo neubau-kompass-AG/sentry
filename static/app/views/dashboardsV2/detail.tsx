@@ -577,11 +577,11 @@ class DashboardDetail extends Component<Props, State> {
               />
             </StyledPageHeader>
             {hasPageFilters && (
-                <DashboardPageFilterBar>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter alignDropdown="right" />
-                  <DatePageFilter alignDropdown="right" />
-                </DashboardPageFilterBar>
+              <DashboardPageFilterBar>
+                <ProjectPageFilter />
+                <EnvironmentPageFilter alignDropdown="right" />
+                <DatePageFilter alignDropdown="right" />
+              </DashboardPageFilterBar>
             )}
             <HookHeader organization={organization} />
             <Dashboard
@@ -685,11 +685,11 @@ class DashboardDetail extends Component<Props, State> {
               <Layout.Body>
                 <Layout.Main fullWidth>
                   {hasPageFilters && (
-                      <DashboardPageFilterBar>
-                        <ProjectPageFilter />
-                        <EnvironmentPageFilter alignDropdown="right" />
-                        <DatePageFilter alignDropdown="right" />
-                      </DashboardPageFilterBar>
+                    <DashboardPageFilterBar>
+                      <ProjectPageFilter />
+                      <EnvironmentPageFilter alignDropdown="right" />
+                      <DatePageFilter alignDropdown="right" />
+                    </DashboardPageFilterBar>
                   )}
                   <Dashboard
                     paramDashboardId={dashboardId}
