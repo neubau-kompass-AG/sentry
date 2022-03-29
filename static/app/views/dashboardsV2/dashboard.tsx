@@ -578,7 +578,7 @@ class Dashboard extends Component<Props, State> {
         isResizable={canModifyLayout}
         resizeHandle={
           <ResizeHandle
-            aria-label="Resize Widget"
+            aria-label={t("Resize Widget")}
             data-test-id="custom-resize-handle"
             className={DRAG_RESIZE_CLASS}
             size="xsmall"
